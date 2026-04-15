@@ -1,12 +1,13 @@
 [Unit]
-Description=GoPro Webcam start script
-After=network-online.target
-Wants=network-online.target systemd-networkd-wait-online.service
+Description=GoPro Webcam Auto-Start for HERO13
+After=network.target
 
 [Service]
-ExecStart=/usr/local/sbin/gopro webcam -a -n
+Type=simple
+# Ejecutamos con los parámetros de máxima calidad
+ExecStart=/usr/local/sbin/gopro webcam -a -r 1080 -f linear
 Restart=on-failure
-RestartSec=15s
+RestartSec=5s
 
 [Install]
 WantedBy=multi-user.target

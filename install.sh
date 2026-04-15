@@ -24,14 +24,23 @@ if [ $EUID -ne 0 ]; then
     exit 1
 fi
 
+# 1. Copiar el script principal
 install -D ./gopro /usr/local/sbin/gopro
 
-yellow "**********************"
-printf "\n\n"
-green "The GoPro install script succeeded"
-green "Run with with: "
-green "sudo gopro"
-printf "\n\n"
-yellow "**********************"
+# 2. Instalar regla de udev para detección inmediata
+cp 60-gopro.rules /etc/udev/rules.d/
+udevadm control --reload-rules
+udevadm trigger
 
-gopro
+# 3. Instalar servicio de sistema
+cp gopro_webcam.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable gopro_webcam.service
+
+yellow "**********************"
+printf "\n\n"
+green "The GoPro HERO13 auto-start installation succeeded!"
+green "The camera will now be recognized IMMEDIATELY when plugged in."
+green "Resolution: 1080p | FOV: Linear"
+printf "\n\n"
+yellow "**********************"

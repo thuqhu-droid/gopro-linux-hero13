@@ -299,8 +299,7 @@ function test_module_unload {
 function test_module_loaded { 
     # test if module is already loaded
     if lsmod | grep ${module} &> /dev/null ; then
-        green "${module} is loaded!"
-        test_module_unload
+        green "${module} is already loaded! Keeping it to avoid session instability."
         return 0
     else
         green "${module} is not loaded!"
@@ -382,6 +381,13 @@ function start_webcam {
         discover_device
     fi
 
+    # Optimización inmediata de la interfaz detectada para HERO13
+    if [[ -n ${GOPRO_DEVICE} ]]; then
+        echo "Optimizing network interface ${GOPRO_DEVICE} for HERO13..."
+        ip link set ${GOPRO_DEVICE} txqueuelen 10000
+        ip link set ${GOPRO_DEVICE} mtu 1500
+    fi
+
     find_gopro_ip
 
     start_gopro_webcam_mode
@@ -392,12 +398,22 @@ function start_webcam {
 function expose_device {
 
     if [[ ${GOPRO_AUTOSTART} -eq 1 ]]; then
-        echo "Starting ffmpeg.."
+        echo "Starting ffmpeg with GPU Acceleration and PRO Image Filters..."
         CROP=""
         if [ -n "${GOPRO_CROP}" ]; then
             CROP=",crop=${GOPRO_CROP}"
         fi
-        ffmpeg -nostdin -threads 1 -i "udp://@0.0.0.0:${GOPRO_PORT}?overrun_nonfatal=1&fifo_size=50000000" -f:v mpegts -fflags nobuffer -vf format="yuv420p${CROP}" -f v4l2 /dev/video${GOPRO_VIDEO_NUMBER}
+        # Cadena de Filtros PRO:
+        # 1. eq: Ajusta contraste(1.05), saturación(1.25) y gamma(1.1) para un look vibrante.
+        # 2. unsharp: Mejora la nitidez de los bordes para un look más definido.
+        ffmpeg -nostdin -threads 4 \
+            -hwaccel vaapi -vaapi_device /dev/dri/renderD128 \
+            -probesize 32 -analyzeduration 0 -sync ext \
+            -fflags nobuffer -flags low_delay \
+            -i "udp://@0.0.0.0:${GOPRO_PORT}?overrun_nonfatal=1&fifo_size=1000000" \
+            -f:v mpegts -fflags nobuffer \
+            -vf "hwdownload,format=nv12,format=yuv420p,eq=contrast=1.05:saturation=1.25:gamma=1.1,unsharp=3:3:0.8:3:3:0.4${CROP}" \
+            -f v4l2 /dev/video${GOPRO_VIDEO_NUMBER}
     elif [[ ${GOPRO_PREVIEW} -eq 1 ]]; then
         echo "Starting preview.."
         start_preview
@@ -439,11 +455,11 @@ main() {
         # check if sudo/root
         permission_check
 
-        # If module is loaded already, unload it, to maintain idempotency.
-        test_module_loaded
-
-        # modprobe the needed kernel module
-        test_module_probe
+        # If module is loaded already, just keep it.
+        if ! test_module_loaded; then
+            # modprobe the needed kernel module only if not loaded
+            test_module_probe
+        fi
 
         # prompt to plug in the cable and turn on the device
         user_confirmation
