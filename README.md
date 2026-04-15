@@ -59,3 +59,14 @@ Usamos la GPU para aplicar:
 
 ---
 *Desarrollado para ofrecer la mejor experiencia de Webcam con cámaras de acción en entornos Linux profesionales.*
+
+## 🤝 Créditos y Reconocimientos
+
+Esta versión es una variante altamente optimizada y mejorada basada en el trabajo original de [Joshua Schmid (jschmid1)](https://github.com/jschmid1/gopro_as_webcam_on_linux). 
+
+**Mejoras añadidas en esta versión:**
+*   Soporte específico y optimizado para **GoPro HERO13**.
+*   Aceleración por hardware **Intel VA-API (Iris Xe)**.
+*   Filtros de imagen en tiempo real (saturación, contraste y nitidez).
+*   Configuración de **ultra-baja latencia** para videollamadas.
+*   Automatización completa mediante servicios de sistema y reglas `udev` para un reconocimiento inmediato.
